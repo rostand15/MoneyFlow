@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 
 const CORES = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
@@ -20,6 +21,8 @@ export default function Dashboard() {
   const [editandoId, setEditandoId] = useState(null);
   const [novaCategoria, setNovaCategoria] = useState('');
   const [novoTipo, setNovoTipo] = useState('despesa');
+  const [busca, setBusca] = useState('');
+  const [mesFiltro, setMesFiltro] = useState('');
   const navigate = useNavigate();
 
   async function carregarTudo() {
@@ -94,17 +97,30 @@ export default function Dashboard() {
     return tipo === 'receita' ? total + Number(t.valor) : total - Number(t.valor);
   }, 0);
 
+  const transacoesFiltradas = transacoes.filter((t) => {
+    const bateBusca = t.descricao?.toLowerCase().includes(busca.toLowerCase());
+    const bateMes = mesFiltro ? t.data.slice(0, 7) === mesFiltro : true;
+    return bateBusca && bateMes;
+  });
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">MoneyFlow</h1>
-        <button onClick={sair} className="text-red-600">Sair</button>
+        <div className="flex items-center gap-4">
+          <Link to="/categorias" className="text-blue-600">Categorias</Link>
+          <button onClick={sair} className="text-red-600">Sair</button>
+        </div>
       </div>
 
-      <div className={`rounded-lg shadow p-6 mb-6 text-white ${saldo >= 0 ? 'bg-green-600' : 'bg-red-600'}`}>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`rounded-lg shadow p-6 mb-6 text-white ${saldo >= 0 ? 'bg-green-600' : 'bg-red-600'}`}
+      >
         <p className="text-sm opacity-90">Saldo total</p>
         <p className="text-3xl font-bold">{formatarMoeda(saldo)}</p>
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow p-4">
@@ -120,9 +136,9 @@ export default function Dashboard() {
               ))}
             </select>
             <div className="flex gap-2">
-              <button type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+              <motion.button whileTap={{ scale: 0.97 }} type="submit" className="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
                 {editandoId ? 'Salvar alterações' : 'Adicionar'}
-              </button>
+              </motion.button>
               {editandoId && (
                 <button type="button" onClick={limparFormulario} className="px-4 py-2 rounded border">
                   Cancelar
@@ -161,21 +177,50 @@ export default function Dashboard() {
 
       <div className="bg-white rounded-lg shadow p-4 mt-6">
         <h2 className="font-semibold mb-3">Transações</h2>
-        {transacoes.map((t) => {
-          const tipo = t.categoria?.tipo || 'despesa';
-          return (
-            <div key={t.id} className="flex justify-between items-center py-2 border-b">
-              <span>{t.descricao} {t.categoria ? `(${t.categoria.nome})` : ''}</span>
-              <div className="flex items-center gap-3">
-                <span className={tipo === 'receita' ? 'text-green-600' : 'text-red-600'}>
-                  {tipo === 'receita' ? '+' : '-'} {formatarMoeda(t.valor)}
-                </span>
-                <button onClick={() => editarTransacao(t)} className="text-blue-600 text-sm">Editar</button>
-                <button onClick={() => excluirTransacao(t.id)} className="text-red-600 text-sm">Excluir</button>
-              </div>
-            </div>
-          );
-        })}
+
+        <div className="flex gap-2 mb-3">
+          <input
+            placeholder="Buscar por descrição..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            className="flex-1 border rounded px-3 py-2 text-sm"
+          />
+          <input
+            type="month"
+            value={mesFiltro}
+            onChange={(e) => setMesFiltro(e.target.value)}
+            className="border rounded px-3 py-2 text-sm"
+          />
+        </div>
+
+        {transacoesFiltradas.length === 0 && (
+          <p className="text-gray-400 text-sm">Nenhuma transação encontrada.</p>
+        )}
+
+        <AnimatePresence>
+          {transacoesFiltradas.map((t) => {
+            const tipo = t.categoria?.tipo || 'despesa';
+            return (
+              <motion.div
+                key={t.id}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: 50 }}
+                transition={{ duration: 0.2 }}
+                className="flex justify-between items-center py-2 border-b"
+              >
+                <span>{t.descricao} {t.categoria ? `(${t.categoria.nome})` : ''}</span>
+                <div className="flex items-center gap-3">
+                  <span className={tipo === 'receita' ? 'text-green-600' : 'text-red-600'}>
+                    {tipo === 'receita' ? '+' : '-'} {formatarMoeda(t.valor)}
+                  </span>
+                  <button onClick={() => editarTransacao(t)} className="text-blue-600 text-sm">Editar</button>
+                  <button onClick={() => excluirTransacao(t.id)} className="text-red-600 text-sm">Excluir</button>
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -13,15 +13,16 @@ async function listar(req, res) {
 }
 
 async function criar(req, res) {
-  const { nome, tipo } = req.body;
+  const { nome, tipo, metaMensal } = req.body;
 
   try {
     const categoria = await prisma.categoria.create({
       data: {
         nome,
         tipo,
-        usuarioId: req.usuarioId
-      }
+        metaMensal: metaMensal ? Number(metaMensal) : null,
+        usuarioId: req.usuarioId,
+      },
     });
 
     res.status(201).json(categoria);
@@ -44,4 +45,45 @@ async function remover(req, res) {
   }
 }
 
-module.exports = { listar, criar, remover };
+async function atualizar(req, res) {
+  const { id } = req.params;
+  const { nome, tipo, metaMensal } = req.body;
+
+  try {
+    const categoria = await prisma.categoria.update({
+      where: { id: Number(id) },
+      data: {
+        nome,
+        tipo,
+        metaMensal: metaMensal ? Number(metaMensal) : null,
+      },
+    });
+
+    res.json(categoria);
+  } catch (erro) {
+    res.status(400).json({ erro: 'Erro ao atualizar categoria.' });
+  }
+  
+}async function atualizar(req, res) {
+  const { id } = req.params;
+  const { nome, tipo, metaMensal } = req.body;
+
+  try {
+    const categoria = await prisma.categoria.update({
+      where: { id: Number(id) },
+      data: {
+        nome,
+        tipo,
+        metaMensal: metaMensal ? Number(metaMensal) : null,
+      },
+    });
+
+    res.json(categoria);
+  } catch (erro) {
+    res.status(400).json({ erro: 'Erro ao atualizar categoria.' });
+  }
+}
+
+
+
+module.exports = { listar, criar, remover, atualizar };
